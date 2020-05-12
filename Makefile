@@ -1,4 +1,4 @@
 # basic makefile for later updating
 
 all: 
-	gcc main.c -o build/main
+	gcc main.c places.c places.h -o build/main
