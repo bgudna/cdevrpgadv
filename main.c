@@ -2,16 +2,14 @@
 #include <string.h>
 #include <stdlib.h> // For random item generation
 #include <time.h>   // For random seed
-#include "places.h"
 
 #define MAX_NAME_LEN 50
-#define MAX_EMAIL_LEN 100
 #define MAX_INVENTORY_SIZE 5
 #define MAX_ITEM_NAME_LEN 20
+#define NUM_LOCATIONS 3
 
 typedef struct {
     char name[MAX_NAME_LEN];
-    char email[MAX_EMAIL_LEN];
     struct {
         char name[MAX_ITEM_NAME_LEN];
         int value;
@@ -20,159 +18,137 @@ typedef struct {
     int num_items;
     int health;
     int mana;
-    int experience;
+    int current_location;
 } Adventurer;
+
+typedef struct {
+    char name[50];
+    char description[100];
+} Location;
 
 void init_ncurses() {
     initscr();  // Initialize NCurses
     cbreak();   // Line buffering disabled
     noecho();   // Don't echo characters
     keypad(stdscr, TRUE); // Enable special keys
+    curs_set(1); // Enable cursor
+    timeout(0); // Non-blocking getch
 }
 
-void print_center(int y, const char *text) {
-    int x = (COLS - strlen(text)) / 2;
-    mvprintw(y, x, "%s", text);
+void print_center(int y, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    char buffer[100]; // Assuming a maximum buffer size of 100 characters
+
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    int x = (COLS - strlen(buffer)) / 2;
+
+    mvprintw(y, x, "%s", buffer);
+
+    va_end(args);
 }
 
-void draw_background() {
+void draw_background(const Adventurer *adv, const Location *locations) {
     clear();
-    // Draw fantasy-themed background
-    print_center(1, "~~~ Adventure Registration ~~~");
+    print_center(1, "~~~ Text Adventure Game ~~~");
     print_center(3, "Welcome, brave adventurer!");
     print_center(5, "Please register to embark on your quest.");
     refresh();
 }
 
 void get_input(const char *prompt, char *buffer, int max_len) {
-    echo();
-    curs_set(1);
     print_center(7, prompt);
-    mvgetnstr(7, 10, buffer, max_len);
-    noecho();
-    curs_set(0);
+    echo(); // Enable echoing of characters
+    curs_set(1); // Show cursor
+    mvgetnstr(8, 10, buffer, max_len);
+    curs_set(0); // Hide cursor
+    noecho(); // Disable echoing of characters
 }
 
-static char input[100];
-
-static int getMeSomeInput() {
-    printf("\nWhat now?: ");
-    return fgets(input, sizeof(input), stdin) != NULL;
-}
-
-static int getAndParseAndGo() {
-    char *verb = strtok(input, "\n");
-    char *noun = strtok(NULL, "\n");
-
-    if (verb != NULL) {
-        if(strcmp(verb, "quit") == 0) {
-            return 0;
-        } else if (strcmp(verb, "look") == 0) {
-            //printf("You see nothing, your eyes are bleeding\n");
-            goLook(noun);
-        } else if (strcmp(verb, "go") == 0) {
-            //printf("You can't go anywhere, your eyes are bleeding from the encounter\n");
-            goGo(noun);
-        } else {
-            printf("I can't really '%s' right now\n", verb);
-        }
-    }
-    return 1;
-}
-
-void display_inventory(const Adventurer *adv) {
-    int i;
-    print_center(15, "~~~ Inventory ~~~");
-    print_center(17, "Your Inventory:");
-
-    for (i = 0; i < adv->num_items; i++) {
-        char item_text[MAX_ITEM_NAME_LEN + 60];
-        snprintf(item_text, sizeof(item_text), "%d. %s (Value: %d, Type: %s)",
-                 i + 1, adv->inventory[i].name, adv->inventory[i].value, adv->inventory[i].type);
-        print_center(19 + i, item_text);
-    }
-
-    refresh();
-}
-
-void generate_items(Adventurer *adv) {
-    const char *weapon_names[] = {"Sword", "Bow", "Staff", "Dagger", "Axe"};
-    const char *food_names[] = {"Apple", "Bread", "Cheese", "Meat", "Potion"};
-    int i;
-
-    srand(time(NULL)); // Seed the random number generator
-
-    for (i = 0; i < MAX_INVENTORY_SIZE; i++) {
-        if (rand() % 2 == 0) { // Randomly choose weapon or food
-            strcpy(adv->inventory[i].name, weapon_names[rand() % 5]);
-            strcpy(adv->inventory[i].type, "weapon");
-            adv->inventory[i].value = (rand() % 10) + 1; // Weapon value between 1 and 10
-        } else {
-            strcpy(adv->inventory[i].name, food_names[rand() % 5]);
-            strcpy(adv->inventory[i].type, "food");
-            adv->inventory[i].value = (rand() % 5) + 1; // Food value between 1 and 5
-        }
-    }
-
-    adv->num_items = MAX_INVENTORY_SIZE;
+void display_status_line(const Adventurer *adv, const Location *locations) {
+    attron(A_REVERSE); // Enable reverse attribute for highlighted text
+    mvprintw(0, 0, "Player: %s | Location: %s", adv->name, locations[adv->current_location].name);
+    attroff(A_REVERSE); // Disable reverse attribute
 }
 
 void register_adventurer(Adventurer *adv) {
-    draw_background();
-    get_input("What is your adventurer name?:", adv->name, MAX_NAME_LEN);
-    draw_background();
-    get_input("What is your adventurer email?:", adv->email, MAX_EMAIL_LEN);
+    char player_name[MAX_NAME_LEN];
 
-    // Simulate starting health, mana, and experience
+    draw_background(adv, NULL);
+    get_input("What is your adventurer name?:", player_name, MAX_NAME_LEN);
+
+    // Copy player name to adventurer struct
+    strncpy(adv->name, player_name, MAX_NAME_LEN - 1);
+    adv->name[MAX_NAME_LEN - 1] = '\0'; // Ensure null-terminated string
+
+    // Simulate starting health, mana, and location
     adv->health = 100;
     adv->mana = 50;
-    adv->experience = 0;
+    adv->current_location = 0;
+    adv->num_items = 0;
 
-    generate_items(adv); // Generate initial items for the adventurer
-
-    clear();
+    clear(); // Clear screen after registration
     print_center(LINES / 2, "Registration successful! Your quest awaits...");
     refresh();
     getch(); // Wait for a key press
 }
 
-void display_status(const Adventurer *adv) {
-
+void move_to_location(Adventurer *adv, int new_location, const Location *locations) {
+    adv->current_location = new_location;
     clear();
-    print_center(1, "~~~ Current Status ~~~");
-    print_center(3, "Name: ");
-    print_center(4, adv->name);
-    print_center(5, "Email: ");
-    print_center(6, adv->email);
-    print_center(8, "Health: ");
-    print_center(9, "75");
-    print_center(10, "Mana: ");
-    print_center(11, "200");
-    print_center(12, "Experience: ");
-    print_center(13, "100");
+    print_center(LINES / 2, "You have moved to %s.", locations[adv->current_location].name);
     refresh();
+    getch(); // Wait for a key press
+}
+
+void main_game_loop(Adventurer *adv, const Location *locations) {
+    int ch;
+
+    while (1) {
+        display_status_line(adv, locations);
+        refresh();
+
+        ch = getch(); // Get player input
+
+        switch (ch) {
+            case 'q':
+                return; // Quit game
+            case 's':
+                // Show status screen
+                clear();
+                print_center(1, "~~~ Current Status ~~~");
+                print_center(3, "Name: %s", adv->name);
+                print_center(5, "Health: %d", adv->health);
+                print_center(6, "Mana: %d", adv->mana);
+                print_center(8, "Current Location: %s", locations[adv->current_location].name);
+                print_center(10, "Press any key to continue...");
+                refresh();
+                getch(); // Wait for a key press to continue
+                break;
+            case '1':
+            case '2':
+            case '3':
+                if (ch - '1' < NUM_LOCATIONS) {
+                    move_to_location(adv, ch - '1', locations);
+                }
+                break;
+        }
+    }
 }
 
 int main() {
     Adventurer adventurer;
+    Location locations[NUM_LOCATIONS] = {
+        {"Town", "A bustling town with shops and villagers."},
+        {"Forest", "A dense forest filled with mysterious creatures."},
+        {"Cave", "A dark cave with hidden treasures."},
+    };
 
     init_ncurses();
-    draw_background();
     register_adventurer(&adventurer);
+    main_game_loop(&adventurer, locations);
 
-    display_inventory(&adventurer);
-
-    //getch(); // Wait for another key press before exiting
-    
-    goLook("around");
-    while (1) {
-        display_status(&adventurer);
-        display_inventory(&adventurer);
-        //refresh();
-        getMeSomeInput();
-        getAndParseAndGo();
-    }
-    
     endwin(); // End NCurses
 
     return 0;
