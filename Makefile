@@ -4,4 +4,4 @@
 all: test
 
 test: main.c
-	gcc -Wall -std=c99 -Wextra main.c hlutur.c places.c ymislegt.c -o build/main
+	gcc main.c hlutur.c places.c ymislegt.c -o build/main -lncurses
