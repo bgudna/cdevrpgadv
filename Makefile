@@ -1,7 +1,20 @@
-# basic makefile for later updating
-# don't forget to make the build folder :)
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c99
+LIBS = -lncurses
 
-all: test
+# Default target
+all: game
 
-test: main.c
-	gcc main.c hlutur.c places.c ymislegt.c -o build/main -lncurses
+# Build the game
+game: main.c
+	$(CC) $(CFLAGS) -o game main.c $(LIBS)
+
+# Clean build artifacts
+clean:
+	rm -f game
+
+# Run the game
+run: game
+	./game
+
+.PHONY: all clean run
