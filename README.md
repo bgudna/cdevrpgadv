@@ -8,9 +8,12 @@
  * * build and debug scripts for vscode included
  * don't forget to create /build before running the make file :P
 
-## TODO
- - [ ] add character creation in the beginning
- - [ ] add ncurses for UI goodness
- - [ ] generate lore 
+## Features Implemented
+ - [x] Character creation with name input
+ - [x] Enhanced character creation with stat distribution
+ - [x] Quick creation option (auto-distribute stats)
+ - [x] Manual stat distribution with keyboard controls
+ - [x] add ncurses for UI goodness
+ - [x] generate lore 
 
- > this is just a stream of conciousness list, it will grow with further ideas if I ever get anywhere in this 
+ > this is just a stream of conciousness list, it will grow with further ideas if I ever get anywhere in this

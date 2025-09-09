@@ -154,7 +154,11 @@ void display_status_line(const Adventurer *adv, const Location *locations) {
 void create_character(Adventurer *adv) {
     char player_name[MAX_NAME_LEN];
     int class_choice;
+    int stat_points = 15; // Total stat points to distribute
+    int strength, intelligence, agility;
+    int quick_create = 0;
 
+    // Get character name
     clear();
     print_center(1, "~~~ Character Creation ~~~");
     print_center(3, "What is your adventurer name?:");
@@ -170,54 +174,156 @@ void create_character(Adventurer *adv) {
     strncpy(adv->name, player_name, MAX_NAME_LEN - 1);
     adv->name[MAX_NAME_LEN - 1] = '\0'; // Ensure null-terminated string
 
+    // Quick creation option
     clear();
     print_center(1, "~~~ Character Creation ~~~");
-    print_center(3, "Choose your class:");
-    print_center(5, "1. Warrior (High Health, Low Mana)");
-    print_center(6, "2. Mage (Low Health, High Mana)");
-    print_center(7, "3. Rogue (Balanced Stats)");
-    print_center(9, "Enter choice (1-3):");
+    print_center(3, "Choose creation method:");
+    print_center(5, "1. Manual Distribution");
+    print_center(6, "2. Quick Create (Auto-distribute stats)");
+    print_center(8, "Enter choice (1-2):");
     refresh();
 
-    // Get class choice
+    // Get creation method
     int ch;
-    while ((ch = getch()) != '1' && ch != '2' && ch != '3') {
+    while ((ch = getch()) != '1' && ch != '2') {
         // Wait for valid input
     }
     
-    class_choice = ch - '0';
-
-    // Initialize stats based on class choice
-    switch (class_choice) {
-        case 1: // Warrior
-            adv->stats.strength = 15;
-            adv->stats.intelligence = 8;
-            adv->stats.agility = 10;
-            adv->stats.max_health = 120;
-            adv->stats.health = 120;
-            adv->stats.max_mana = 30;
-            adv->stats.mana = 30;
-            break;
-        case 2: // Mage
-            adv->stats.strength = 8;
-            adv->stats.intelligence = 15;
-            adv->stats.agility = 10;
-            adv->stats.max_health = 70;
-            adv->stats.health = 70;
-            adv->stats.max_mana = 80;
-            adv->stats.mana = 80;
-            break;
-        case 3: // Rogue
-            adv->stats.strength = 12;
-            adv->stats.intelligence = 12;
-            adv->stats.agility = 15;
-            adv->stats.max_health = 90;
-            adv->stats.health = 90;
-            adv->stats.max_mana = 50;
-            adv->stats.mana = 50;
-            break;
+    if (ch == '2') {
+        quick_create = 1;
     }
-    
+
+    // Handle stat distribution
+    if (quick_create) {
+        // Auto-distribute stats based on class choice
+        clear();
+        print_center(1, "~~~ Character Creation ~~~");
+        print_center(3, "Choose your class:");
+        print_center(5, "1. Warrior (High Health, Low Mana)");
+        print_center(6, "2. Mage (Low Health, High Mana)");
+        print_center(7, "3. Rogue (Balanced Stats)");
+        print_center(9, "Enter choice (1-3):");
+        refresh();
+
+        // Get class choice for quick creation
+        while ((ch = getch()) != '1' && ch != '2' && ch != '3') {
+            // Wait for valid input
+        }
+        
+        class_choice = ch - '0';
+
+        // Initialize stats based on class choice with quick distribution
+        switch (class_choice) {
+            case 1: // Warrior - more strength and health
+                adv->stats.strength = 20;
+                adv->stats.intelligence = 10;
+                adv->stats.agility = 12;
+                adv->stats.max_health = 130;
+                adv->stats.health = 130;
+                adv->stats.max_mana = 35;
+                adv->stats.mana = 35;
+                break;
+            case 2: // Mage - more intelligence and mana
+                adv->stats.strength = 10;
+                adv->stats.intelligence = 20;
+                adv->stats.agility = 12;
+                adv->stats.max_health = 75;
+                adv->stats.health = 75;
+                adv->stats.max_mana = 90;
+                adv->stats.mana = 90;
+                break;
+            case 3: // Rogue - balanced stats
+                adv->stats.strength = 15;
+                adv->stats.intelligence = 15;
+                adv->stats.agility = 20;
+                adv->stats.max_health = 95;
+                adv->stats.health = 95;
+                adv->stats.max_mana = 55;
+                adv->stats.mana = 55;
+                break;
+        }
+    } else {
+        // Manual distribution - initialize to zero and let player distribute
+        strength = 0;
+        intelligence = 0;
+        agility = 0;
+        
+        // Display stat distribution screen
+        int running = 1;
+        while (running) {
+            clear();
+            print_center(1, "~~~ Character Creation ~~~");
+            print_center(3, "Distribute %d stat points:", stat_points);
+            print_center(5, "Strength: %d", strength);
+            print_center(6, "Intelligence: %d", intelligence);
+            print_center(7, "Agility: %d", agility);
+            print_center(9, "Remaining points: %d", stat_points);
+            print_center(11, "Use UP/DOWN keys to adjust stats");
+            print_center(12, "Press 'c' when done");
+            refresh();
+            
+            // Get input to adjust stats
+            int key = getch();
+            switch (key) {
+                case 'w': // Up key - increase strength
+                case KEY_UP:
+                    if (stat_points > 0) {
+                        strength++;
+                        stat_points--;
+                    }
+                    break;
+                case 's': // Down key - decrease strength
+                case KEY_DOWN:
+                    if (strength > 0) {
+                        strength--;
+                        stat_points++;
+                    }
+                    break;
+                case 'a': // Left key - decrease intelligence
+                case KEY_LEFT:
+                    if (intelligence > 0) {
+                        intelligence--;
+                        stat_points++;
+                    }
+                    break;
+                case 'd': // Right key - increase intelligence
+                case KEY_RIGHT:
+                    if (stat_points > 0) {
+                        intelligence++;
+                        stat_points--;
+                    }
+                    break;
+                case 'q': // Q key - decrease agility
+                    if (agility > 0) {
+                        agility--;
+                        stat_points++;
+                    }
+                    break;
+                case 'e': // E key - increase agility
+                    if (stat_points > 0) {
+                        agility++;
+                        stat_points--;
+                    }
+                    break;
+                case 'c': // Confirm
+                    if (stat_points == 0) {
+                        running = 0;
+                        // Apply the stats to character
+                        adv->stats.strength = strength;
+                        adv->stats.intelligence = intelligence;
+                        adv->stats.agility = agility;
+                        
+                        // Calculate derived stats based on base stats
+                        adv->stats.max_health = 70 + (strength * 5);
+                        adv->stats.health = adv->stats.max_health;
+                        adv->stats.max_mana = 30 + (intelligence * 3);
+                        adv->stats.mana = adv->stats.max_mana;
+                    }
+                    break;
+            }
+        }
+    }
+
     adv->stats.level = 1;
     adv->stats.experience = 0;
     adv->gold = 50;
